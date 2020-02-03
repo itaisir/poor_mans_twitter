@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Poor Man's Twitter</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+      crossorigin="anonymous"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+    <script>
+      var action = ["Tweet", "Tweeting"];
+
+      document.addEventListener("DOMContentLoaded", function() {
+        new Vue({
+          el: "#tweetApp",
+          delimiters: ["${", "}"],
+          data: {
+            tweet: action[0],
+            name: "",
+            tweetValue: "",
+            loading: false,
+            tweets: [],
+            errorLoadingTweets: false,
+            errorPostingTweets: false,
+            errorMessage: ""
+          },
+          methods: {
+            handleTweetChange(value) {
+              this.tweetValue = value;
+            },
+            handleNameChange(value) {
+              this.name = value;
+            },
+            submitTweet: async function(e) {
+              e.preventDefault();
+              this.tweet = action[1];
+              const data = { name: this.name, message: this.tweetValue };
+              await axios
+                .post("/api/twitter/tweet/", data)
+                .then(response => {
+                  this.clearErrors();
+                  this.fetchTweets();
+                  this.clearForm();
+                })
+                .catch(error => {
+                  this.tweet = action[0];
+                  this.errorPostingTweets = true;
+                  this.errorLoadingTweets = false;
+                  this.loading = false;
+                  this.errorMessage = "Error Posting Tweet";
+                });
+            },
+            fetchTweets: async function() {
+              this.loading = true;
+              await axios
+                .get("/api/twitter/tweet/")
+                .then(response => {
+                  this.clearErrors();
+                  this.tweets = response.data;
+                })
+                .catch(error => {
+                  this.errorLoadingTweets = true;
+                  this.loading = false;
+                  this.errorMessage = "Error Loading Tweets";
+                });
+            },
+            clearForm: function() {
+              this.name = "";
+              this.tweetValue = "";
+              this.tweet = action[0];
+            },
+            clearErrors: function() {
+              this.loading = false;
+              this.errorPostingTweets = false;
+              this.errorLoadingTweets = false;
+              this.errorMessage = "";
+            }
+          },
+          mounted() {
+            this.fetchTweets();
+          }
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row text-center d-flex justify-content-center" id="tweetApp">
+        <div class="col-md-8">
+          <form action="" method="POST" @submit="submitTweet">
+            <div class="form-group">
+              <p class="h1">Poor Man's Twitter</p>
+              <input
+                type="text"
+                id="name"
+                class="form-control"
+                v-model="name"
+                @input="handleNameChange($event.target.value)"
+                placeholder="Name"
+                required
+              />
+              <input
+                type="text"
+                placeholder="What's Happening"
+                maxlength="50"
+                class="form-control form-control-lg mt-3"
+                id="tweetText"
+                v-model="tweetValue"
+                @input="handleTweetChange($event.target.value)"
+                required
+              />
+              <span class="float-right"> ${tweetValue.length} / 50</span>
+            </div>
+            <input type="submit" v-model="tweet" class="btn btn-success mt-2" />
+            <p v-if="errorPostingTweets">${ errorMessage }</p>
+          </form>
+        </div>
+
+        <div class="col-md-8 mt-3">
+          <div
+            v-if="loading"
+            id="spinner"
+            class="spinner-grow text-primary"
+            style="width: 3rem; height: 3rem;"
+            role="status"
+          ></div>
+          <p v-if="errorLoadingTweets">${ errorMessage }</p>
+          <table
+            v-if="tweets.length > 0"
+            class="table table-striped table-bordered table-hover"
+          >
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Message</th>
+                <th scope="col">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(tweet, i) in tweets" :key="i">
+                <td scope="row">${ tweet.name }</td>
+                <td>${ tweet.message }</td>
+                <td>${ tweet.datetime }</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+      integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+      integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
